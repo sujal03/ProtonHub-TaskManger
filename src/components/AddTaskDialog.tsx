@@ -11,6 +11,8 @@ export default function AddTaskDialog() {
   const [open, setOpen] = React.useState(false);
 
   const handleSubmit = (data: any) => {
+    console.log('Form submitted with data:', data); // Debug log
+    
     addTask(
       data.title, 
       data.description, 

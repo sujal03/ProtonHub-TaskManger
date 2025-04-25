@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, ReactNode } from 'react';
 import { Task, TaskPriority, TaskCategory } from '@/types/task';
 import { supabase } from '@/integrations/supabase/client';
@@ -53,7 +52,7 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
         description: item.description || '',
         completed: item.status === 'completed',
         priority: (item.priority as TaskPriority) || 'medium',
-        category: (item.status as TaskCategory) || 'other',
+        category: (item.category as TaskCategory) || 'other', // Fixed: now using item.category instead of item.status
         dueDate: item.due_date || undefined,
         createdAt: item.created_at,
         updatedAt: item.created_at
@@ -67,6 +66,8 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
     mutationFn: async (newTask: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
       if (!user) throw new Error('User not authenticated');
       
+      console.log('Adding task:', newTask); // Debug log to see what's being sent
+      
       const { data, error } = await supabase
         .from('todos')
         .insert([{
@@ -74,14 +75,17 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
           description: newTask.description,
           status: newTask.completed ? 'completed' : 'active',
           priority: newTask.priority,
-          category: newTask.category,
+          category: newTask.category, // Ensure category is being correctly passed
           due_date: newTask.dueDate,
           user_id: user.id
         }])
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error); // Debug log for errors
+        throw error;
+      }
       return data;
     },
     onSuccess: () => {
@@ -89,6 +93,14 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
       toast({
         title: "Task created",
         description: "Your task has been created successfully."
+      });
+    },
+    onError: (error) => {
+      console.error('Error adding task:', error); // Debug log for errors
+      toast({
+        title: "Error",
+        description: "Failed to create task. Please try again.",
+        variant: "destructive"
       });
     }
   });
@@ -146,14 +158,20 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
     priority: TaskPriority = 'medium',
     category: TaskCategory = 'other'
   ) => {
-    await addTaskMutation.mutateAsync({
-      title,
-      description,
-      dueDate,
-      priority,
-      category,
-      completed: false
-    });
+    console.log('addTask called with:', { title, description, dueDate, priority, category }); // Debug log
+    
+    try {
+      await addTaskMutation.mutateAsync({
+        title,
+        description,
+        dueDate,
+        priority,
+        category,
+        completed: false
+      });
+    } catch (error) {
+      console.error('Error in addTask:', error); // Debug log
+    }
   };
 
   const updateTask = async (task: Task) => {
