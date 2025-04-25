@@ -19,7 +19,7 @@ export default function Header() {
     <header className="border-b">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold">Task Forge</h1>
+          <h1 className="text-2xl font-bold">ProtonHub TaskManger</h1>
           {user && (
             <p className="text-sm text-muted-foreground">
               {user.email}
