@@ -4,6 +4,7 @@ import { Task, TaskPriority, TaskCategory } from '@/types/task';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface TaskContextType {
   tasks: Task[];
@@ -29,27 +30,54 @@ export const useTaskContext = () => {
 
 export const TaskProvider = ({ children }: { children: ReactNode }) => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   // Fetch tasks
   const { data: tasks = [] } = useQuery({
     queryKey: ['tasks'],
     queryFn: async () => {
+      if (!user) return [];
+      
       const { data, error } = await supabase
         .from('todos')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as Task[];
-    }
+      
+      // Map Supabase data structure to our application's Task type
+      return data.map(item => ({
+        id: item.id,
+        title: item.title,
+        description: item.description || '',
+        completed: item.status === 'completed',
+        priority: (item.priority as TaskPriority) || 'medium',
+        category: (item.status as TaskCategory) || 'other',
+        dueDate: item.due_date || undefined,
+        createdAt: item.created_at,
+        updatedAt: item.created_at
+      })) as Task[];
+    },
+    enabled: !!user
   });
 
   // Add task mutation
   const addTaskMutation = useMutation({
     mutationFn: async (newTask: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
+      if (!user) throw new Error('User not authenticated');
+      
       const { data, error } = await supabase
         .from('todos')
-        .insert([newTask])
+        .insert([{
+          title: newTask.title,
+          description: newTask.description,
+          status: newTask.completed ? 'completed' : 'active',
+          priority: newTask.priority,
+          category: newTask.category,
+          due_date: newTask.dueDate,
+          user_id: user.id
+        }])
         .select()
         .single();
 
@@ -73,7 +101,7 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
         .update({
           title: task.title,
           description: task.description,
-          completed: task.completed,
+          status: task.completed ? 'completed' : 'active',
           priority: task.priority,
           category: task.category,
           due_date: task.dueDate,
