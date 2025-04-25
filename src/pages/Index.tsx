@@ -30,11 +30,11 @@ const Index = () => {
             <Separator className="my-8" />
             
             <Tabs defaultValue="all" className="w-full">
-              <TabsList className="grid grid-cols-3 w-full max-w-md mb-4">
+              {/* <TabsList className="grid grid-cols-3 w-full max-w-md mb-4">
                 <TabsTrigger value="all">All Tasks</TabsTrigger>
                 <TabsTrigger value="active">Active</TabsTrigger>
                 <TabsTrigger value="completed">Completed</TabsTrigger>
-              </TabsList>
+              </TabsList> */}
               
               <TaskList />
             </Tabs>
