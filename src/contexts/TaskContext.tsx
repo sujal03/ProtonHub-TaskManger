@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, ReactNode } from 'react';
 import { Task, TaskPriority, TaskCategory } from '@/types/task';
 import { supabase } from '@/integrations/supabase/client';
@@ -46,13 +47,18 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
       if (error) throw error;
       
       // Map Supabase data structure to our application's Task type
+      // The database has a 'status' column which contains either 'completed' or 'active'
+      // But it does not have a 'category' column, so we'll use the 'status' field to store the category
+      // for now, or set a default of 'other'
       return data.map(item => ({
         id: item.id,
         title: item.title,
         description: item.description || '',
         completed: item.status === 'completed',
         priority: (item.priority as TaskPriority) || 'medium',
-        category: (item.category as TaskCategory) || 'other', // Fixed: now using item.category instead of item.status
+        // Using the priority field to store the category since there is no category column
+        // This is a temporary solution; ideally we would add a category column to the database
+        category: (item.priority?.includes(':') ? item.priority.split(':')[1] as TaskCategory : 'other'),
         dueDate: item.due_date || undefined,
         createdAt: item.created_at,
         updatedAt: item.created_at
@@ -68,14 +74,17 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
       
       console.log('Adding task:', newTask); // Debug log to see what's being sent
       
+      // Store category in the priority field using a prefix
+      // Format: "actual_priority:category"
+      const priorityWithCategory = `${newTask.priority}:${newTask.category}`;
+      
       const { data, error } = await supabase
         .from('todos')
         .insert([{
           title: newTask.title,
           description: newTask.description,
           status: newTask.completed ? 'completed' : 'active',
-          priority: newTask.priority,
-          category: newTask.category, // Ensure category is being correctly passed
+          priority: priorityWithCategory, // Store both priority and category
           due_date: newTask.dueDate,
           user_id: user.id
         }])
@@ -108,14 +117,16 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
   // Update task mutation
   const updateTaskMutation = useMutation({
     mutationFn: async (task: Task) => {
+      // Store category in the priority field using the same format as in addTask
+      const priorityWithCategory = `${task.priority}:${task.category}`;
+      
       const { error } = await supabase
         .from('todos')
         .update({
           title: task.title,
           description: task.description,
           status: task.completed ? 'completed' : 'active',
-          priority: task.priority,
-          category: task.category,
+          priority: priorityWithCategory, // Store both priority and category
           due_date: task.dueDate,
         })
         .eq('id', task.id);
@@ -226,3 +237,4 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
     </TaskContext.Provider>
   );
 };
+
