@@ -1,15 +1,16 @@
 
 import React, { createContext, useState, useContext, ReactNode } from 'react';
 import { Task, TaskPriority, TaskCategory } from '@/types/task';
-import { v4 as uuidv4 } from 'uuid';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface TaskContextType {
   tasks: Task[];
-  addTask: (title: string, description?: string, dueDate?: string, priority?: TaskPriority, category?: TaskCategory) => void;
-  updateTask: (task: Task) => void;
-  deleteTask: (id: string) => void;
-  toggleTaskCompletion: (id: string) => void;
+  addTask: (title: string, description?: string, dueDate?: string, priority?: TaskPriority, category?: TaskCategory) => Promise<void>;
+  updateTask: (task: Task) => Promise<void>;
+  deleteTask: (id: string) => Promise<void>;
+  toggleTaskCompletion: (id: string) => Promise<void>;
   getTasksByCategory: (category: TaskCategory) => Task[];
   getTasksByPriority: (priority: TaskPriority) => Task[];
   getCompletedTasks: () => Task[];
@@ -27,83 +28,122 @@ export const useTaskContext = () => {
 };
 
 export const TaskProvider = ({ children }: { children: ReactNode }) => {
-  const [tasks, setTasks] = useState<Task[]>(() => {
-    const savedTasks = localStorage.getItem('tasks');
-    if (savedTasks) {
-      try {
-        return JSON.parse(savedTasks);
-      } catch (error) {
-        console.error('Failed to parse saved tasks', error);
-        return [];
-      }
+  const queryClient = useQueryClient();
+
+  // Fetch tasks
+  const { data: tasks = [] } = useQuery({
+    queryKey: ['tasks'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('todos')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data as Task[];
     }
-    return [];
   });
 
-  // Save tasks to local storage whenever they change
-  React.useEffect(() => {
-    localStorage.setItem('tasks', JSON.stringify(tasks));
-  }, [tasks]);
+  // Add task mutation
+  const addTaskMutation = useMutation({
+    mutationFn: async (newTask: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
+      const { data, error } = await supabase
+        .from('todos')
+        .insert([newTask])
+        .select()
+        .single();
 
-  const addTask = (
-    title: string, 
-    description?: string, 
-    dueDate?: string, 
-    priority: TaskPriority = 'medium', 
-    category: TaskCategory = 'other'
-  ) => {
-    const now = new Date().toISOString();
-    const newTask: Task = {
-      id: uuidv4(),
-      title,
-      description,
-      completed: false,
-      createdAt: now,
-      updatedAt: now,
-      dueDate,
-      priority,
-      category,
-    };
-    
-    setTasks(prev => [newTask, ...prev]);
-    toast({
-      title: "Task created",
-      description: `"${title}" has been added to your tasks.`,
-    });
-  };
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      toast({
+        title: "Task created",
+        description: "Your task has been created successfully."
+      });
+    }
+  });
 
-  const updateTask = (updatedTask: Task) => {
-    setTasks(prev => prev.map(task => 
-      task.id === updatedTask.id ? { ...updatedTask, updatedAt: new Date().toISOString() } : task
-    ));
-    
-    toast({
-      title: "Task updated",
-      description: "Your task has been updated successfully.",
-    });
-  };
+  // Update task mutation
+  const updateTaskMutation = useMutation({
+    mutationFn: async (task: Task) => {
+      const { error } = await supabase
+        .from('todos')
+        .update({
+          title: task.title,
+          description: task.description,
+          completed: task.completed,
+          priority: task.priority,
+          category: task.category,
+          due_date: task.dueDate,
+        })
+        .eq('id', task.id);
 
-  const deleteTask = (id: string) => {
-    const taskToDelete = tasks.find(task => task.id === id);
-    setTasks(prev => prev.filter(task => task.id !== id));
-    
-    if (taskToDelete) {
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      toast({
+        title: "Task updated",
+        description: "Your task has been updated successfully."
+      });
+    }
+  });
+
+  // Delete task mutation
+  const deleteTaskMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('todos')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
       toast({
         title: "Task deleted",
-        description: `"${taskToDelete.title}" has been removed.`,
+        description: "Your task has been deleted.",
         variant: "destructive"
       });
     }
+  });
+
+  const addTask = async (
+    title: string,
+    description?: string,
+    dueDate?: string,
+    priority: TaskPriority = 'medium',
+    category: TaskCategory = 'other'
+  ) => {
+    await addTaskMutation.mutateAsync({
+      title,
+      description,
+      dueDate,
+      priority,
+      category,
+      completed: false
+    });
   };
 
-  const toggleTaskCompletion = (id: string) => {
-    setTasks(prev => 
-      prev.map(task => 
-        task.id === id 
-          ? { ...task, completed: !task.completed, updatedAt: new Date().toISOString() } 
-          : task
-      )
-    );
+  const updateTask = async (task: Task) => {
+    await updateTaskMutation.mutateAsync(task);
+  };
+
+  const deleteTask = async (id: string) => {
+    await deleteTaskMutation.mutateAsync(id);
+  };
+
+  const toggleTaskCompletion = async (id: string) => {
+    const task = tasks.find(t => t.id === id);
+    if (task) {
+      await updateTaskMutation.mutateAsync({
+        ...task,
+        completed: !task.completed
+      });
+    }
   };
 
   const getTasksByCategory = (category: TaskCategory) => {
