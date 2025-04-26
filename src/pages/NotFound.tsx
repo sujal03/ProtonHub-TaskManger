@@ -5,10 +5,17 @@ const NotFound = () => {
   const location = useLocation();
 
   useEffect(() => {
-    console.error(
-      "404 Error: User attempted to access non-existent route:",
-      location.pathname
-    );
+    // Check navigation type to detect reload or direct navigation
+    const navigationType = (window.performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming)?.type;
+    const isReloadOrDirect = navigationType === "reload" || navigationType === "navigate";
+
+    // Log error only if it's not a reload or direct navigation
+    if (!isReloadOrDirect) {
+      console.error(
+        "404 Error: User attempted to access non-existent route:",
+        location.pathname
+      );
+    }
   }, [location.pathname]);
 
   return (
