@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Task } from '@/types/task';
 import TaskItem from '@/components/TaskItem';
@@ -11,26 +10,30 @@ import { Search, X, Filter } from 'lucide-react';
 import TaskForm from '@/components/TaskForm';
 import { Badge } from '@/components/ui/badge';
 
-export default function TaskList() {
+interface TaskListProps {
+  filter?: 'all' | 'active' | 'completed'; // Add filter prop
+}
+
+export default function TaskList({ filter = 'all' }: TaskListProps) {
   const { tasks, updateTask, deleteTask, toggleTaskCompletion } = useTaskContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [priorityFilter, setPriorityFilter] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [editTask, setEditTask] = useState<Task | null>(null);
 
-  // Filter tasks based on search term and filters
-  const filteredTasks = tasks.filter(task => {
-    const matchesSearch = 
-      searchTerm === '' || 
+  // Filter tasks based on search term, category, priority, and status (from filter prop)
+  const filteredTasks = tasks.filter((task) => {
+    const matchesSearch =
+      searchTerm === '' ||
       task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (task.description && task.description.toLowerCase().includes(searchTerm.toLowerCase()));
-    
+
     const matchesCategory = categoryFilter === null || task.category === categoryFilter;
     const matchesPriority = priorityFilter === null || task.priority === priorityFilter;
-    const matchesStatus = statusFilter === null || 
-      (statusFilter === 'completed' ? task.completed : !task.completed);
-    
+    const matchesStatus =
+      filter === 'all' || // Show all tasks
+      (filter === 'completed' ? task.completed : !task.completed); // completed or active
+
     return matchesSearch && matchesCategory && matchesPriority && matchesStatus;
   });
 
@@ -57,14 +60,12 @@ export default function TaskList() {
     setSearchTerm('');
     setCategoryFilter(null);
     setPriorityFilter(null);
-    setStatusFilter(null);
   };
 
   const activeFiltersCount = [
-    searchTerm !== '', 
-    categoryFilter !== null, 
-    priorityFilter !== null, 
-    statusFilter !== null
+    searchTerm !== '',
+    categoryFilter !== null,
+    priorityFilter !== null,
   ].filter(Boolean).length;
 
   return (
@@ -80,9 +81,12 @@ export default function TaskList() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        
+
         <div className="flex flex-wrap gap-2">
-          <Select onValueChange={(value) => setCategoryFilter(value === 'all' ? null : value)} value={categoryFilter || 'all'}>
+          <Select
+            onValueChange={(value) => setCategoryFilter(value === 'all' ? null : value)}
+            value={categoryFilter || 'all'}
+          >
             <SelectTrigger className="w-[130px]">
               <SelectValue placeholder="Category" />
             </SelectTrigger>
@@ -95,8 +99,11 @@ export default function TaskList() {
               <SelectItem value="other">Other</SelectItem>
             </SelectContent>
           </Select>
-          
-          <Select onValueChange={(value) => setPriorityFilter(value === 'all' ? null : value)} value={priorityFilter || 'all'}>
+
+          <Select
+            onValueChange={(value) => setPriorityFilter(value === 'all' ? null : value)}
+            value={priorityFilter || 'all'}
+          >
             <SelectTrigger className="w-[130px]">
               <SelectValue placeholder="Priority" />
             </SelectTrigger>
@@ -107,18 +114,7 @@ export default function TaskList() {
               <SelectItem value="high">High</SelectItem>
             </SelectContent>
           </Select>
-          
-          <Select onValueChange={(value) => setStatusFilter(value === 'all' ? null : value)} value={statusFilter || 'all'}>
-            <SelectTrigger className="w-[130px]">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-            </SelectContent>
-          </Select>
-          
+
           {activeFiltersCount > 0 && (
             <Button variant="ghost" onClick={clearFilters} className="px-2">
               <Badge className="mr-1">{activeFiltersCount}</Badge>
@@ -133,13 +129,13 @@ export default function TaskList() {
           <div className="text-center py-8 border border-dashed rounded-md">
             <p className="text-gray-500">No tasks found</p>
             <p className="text-sm text-gray-400 mt-1">
-              {tasks.length > 0 
-                ? 'Try adjusting your filters or search term' 
+              {tasks.length > 0
+                ? 'Try adjusting your filters or search term'
                 : 'Start by adding your first task'}
             </p>
           </div>
         ) : (
-          filteredTasks.map(task => (
+          filteredTasks.map((task) => (
             <TaskItem
               key={task.id}
               task={task}
@@ -157,8 +153,8 @@ export default function TaskList() {
             <DialogTitle>Edit Task</DialogTitle>
           </DialogHeader>
           {editTask && (
-            <TaskForm 
-              initialTask={editTask} 
+            <TaskForm
+              initialTask={editTask}
               onSubmit={handleUpdateTask}
               onCancel={() => setEditTask(null)}
             />
