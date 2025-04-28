@@ -1,17 +1,17 @@
 
 
-# ProtonHub TaskManger
+# ProtonsHub TaskManger
 
-Welcome to **ProtonHub TaskManger**, an advanced to-do list application built for Protonshub Technologies ([https://www.protonshub.com/](https://www.protonshub.com/)). This project delivers a top-notch UI/UX experience with robust task management and user authentication features, designed to enhance productivity for individuals and teams.
+Welcome to **ProtonsHub TaskManger**, an advanced to-do list application built for Protonshub Technologies ([https://www.protonshub.com/](https://www.protonshub.com/)). This project delivers a top-notch UI/UX experience with robust task management and user authentication features, designed to enhance productivity for individuals and teams.
 
 ## Project Info
 
-**GitHub Repository**: [https://github.com/sujal03/ProtonHub-TaskManger.git](https://github.com/sujal03/ProtonHub-TaskManger.git)  
+**GitHub Repository**: [https://github.com/sujal03/ProtonsHub-TaskManger.git](https://github.com/sujal03/ProtonsHub-TaskManger.git)  
 **Lovable Project URL**: [https://lovable.dev/projects/861fb91d-aaa0-491a-bafd-ba868231d117](https://lovable.dev/projects/861fb91d-aaa0-491a-bafd-ba868231d117)
 
 ## Project Overview
 
-ProtonHub TaskManger is a cutting-edge productivity tool featuring secure user authentication, advanced task management, real-time collaboration, analytics, and seamless integrations. Built with modern technologies and a focus on exceptional UI/UX, this application is optimized for desktops, tablets, and smartphones.
+ProtonsHub TaskManger is a cutting-edge productivity tool featuring secure user authentication, advanced task management, real-time collaboration, analytics, and seamless integrations. Built with modern technologies and a focus on exceptional UI/UX, this application is optimized for desktops, tablets, and smartphones.
 
 ### Key Features
 - **Task Management**: Create, edit, and delete tasks with due dates, priorities, subtasks, categories, attachments, and advanced search/filtering.
@@ -46,10 +46,10 @@ To edit or run the project locally, follow these steps:
 ### Clone and Setup
 ```sh
 # Step 1: Clone the repository
-git clone https://github.com/sujal03/ProtonHub-TaskManger.git
+git clone https://github.com/sujal03/ProtonsHub-TaskManger.git
 
 # Step 2: Navigate to the project directory
-cd ProtonHub-TaskManger
+cd ProtonsHub-TaskManger
 
 # Step 3: Install dependencies
 npm i
